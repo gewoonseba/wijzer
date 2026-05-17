@@ -9,6 +9,7 @@
     "verify:setup": "node scripts/verify-setup.mjs"
   },
   "devDependencies": {
+    "playwright": "^1.60.0",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"
   },
