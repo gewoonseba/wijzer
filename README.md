@@ -2,6 +2,8 @@
 
 Save and summarize any link. Paste a URL and optional markdown notes; an AI clipping agent extracts source material and writes a personal reference summary.
 
+**Scope:** This MVP is for **local, single-user** use only. See [SECURITY.md](SECURITY.md) before exposing the app beyond localhost.
+
 ## Quick start
 
 ```bash
@@ -43,4 +45,7 @@ See [docs/spec.md](docs/spec.md) for full specification.
 ## Docs
 
 - [Specification](docs/spec.md)
+- [Security (local-only)](SECURITY.md)
+- [Known issues & improvement areas](docs/improvements.md)
 - [Convex migration](docs/convex-migration.md)
+- [Demo guide](docs/demo.md)

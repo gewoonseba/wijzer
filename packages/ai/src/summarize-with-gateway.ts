@@ -10,10 +10,12 @@ export async function summarizeEvidenceWithGateway(input: {
   notes: string;
   toolUsed: ExtractorName;
   evidence: ExtractorResult;
+  abortSignal?: AbortSignal;
 }) {
   const { output } = await generateText({
     model: CLIP_MODEL,
     output: Output.object({ schema: clipAgentResultSchema }),
+    abortSignal: input.abortSignal,
     prompt: `You are Wijzer, a personal clipping assistant.
 
 Create a markdown clip summary from the extraction evidence below.

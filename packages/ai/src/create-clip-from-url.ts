@@ -2,11 +2,11 @@ import { buildUrlHints, validateClipUrl } from '@wijzer/content';
 import type { ClipMetadata, CreateClipInput } from '@wijzer/core';
 import {
   clipAgentResultSchema,
-  ClipTimeoutError,
   ExtractionError,
 } from '@wijzer/core';
 import { clipAgent } from './agents/clip-agent.js';
 import { buildClipPrompt } from './build-clip-prompt.js';
+import { withClipTimeout } from './clip-timeout.js';
 import { summarizeEvidenceLocally } from './local-summarize.js';
 import {
   fallbackExtractor,
@@ -77,11 +77,14 @@ function buildMetadataFromEvidence(
   };
 }
 
-async function createClipDeterministic(input: {
-  url: string;
-  notes: string;
-  safeUrl: string;
-}): Promise<CreateClipInput> {
+async function createClipDeterministic(
+  input: {
+    url: string;
+    notes: string;
+    safeUrl: string;
+  },
+  signal: AbortSignal,
+): Promise<CreateClipInput> {
   const hints = buildUrlHints(input.safeUrl);
   let tool = selectExtractorFromHints(hints);
   let evidence = await runExtractor(tool, input.safeUrl);
@@ -114,6 +117,7 @@ async function createClipDeterministic(input: {
       notes: input.notes,
       toolUsed: tool,
       evidence,
+      abortSignal: signal,
     });
     content = result.content;
     metadata = {
@@ -140,11 +144,14 @@ async function createClipDeterministic(input: {
   };
 }
 
-async function createClipWithAgent(input: {
-  url: string;
-  notes: string;
-  safeUrl: string;
-}): Promise<CreateClipInput> {
+async function createClipWithAgent(
+  input: {
+    url: string;
+    notes: string;
+    safeUrl: string;
+  },
+  signal: AbortSignal,
+): Promise<CreateClipInput> {
   const hints = buildUrlHints(input.safeUrl);
   const result = await clipAgent.generate({
     prompt: buildClipPrompt({
@@ -152,6 +159,7 @@ async function createClipWithAgent(input: {
       notes: input.notes,
       hints,
     }),
+    abortSignal: signal,
   });
 
   const parsed = clipAgentResultSchema.safeParse(result.output);
@@ -179,25 +187,24 @@ async function createClipWithAgent(input: {
   };
 }
 
+async function createClipFromUrlInner(
+  input: { url: string; notes: string },
+  signal: AbortSignal,
+): Promise<CreateClipInput> {
+  const safeUrl = await validateClipUrl(input.url);
+
+  if (USE_AGENT && hasGatewayKey()) {
+    return createClipWithAgent({ ...input, safeUrl }, signal);
+  }
+  return createClipDeterministic({ ...input, safeUrl }, signal);
+}
+
 export async function createClipFromUrl(input: {
   url: string;
   notes: string;
 }): Promise<CreateClipInput> {
-  const safeUrl = await validateClipUrl(input.url);
-  const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), CLIP_TIMEOUT_MS);
-
-  try {
-    if (USE_AGENT && hasGatewayKey()) {
-      return await createClipWithAgent({ ...input, safeUrl });
-    }
-    return await createClipDeterministic({ ...input, safeUrl });
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new ClipTimeoutError();
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return withClipTimeout(
+    (signal) => createClipFromUrlInner(input, signal),
+    CLIP_TIMEOUT_MS,
+  );
 }

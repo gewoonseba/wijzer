@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_CLIP_NOTES_LENGTH, MAX_CLIP_URL_LENGTH } from './limits.js';
 
 export const provenanceSchema = z.enum(['extracted', 'inferred', 'unknown']);
 
@@ -52,8 +53,8 @@ export const clipAgentResultSchema = z.object({
 });
 
 export const createClipRequestSchema = z.object({
-  url: z.string().url(),
-  notes: z.string().default(''),
+  url: z.string().url().max(MAX_CLIP_URL_LENGTH),
+  notes: z.string().max(MAX_CLIP_NOTES_LENGTH).default(''),
 });
 
 export const urlHintsSchema = z.object({

@@ -20,6 +20,11 @@ function findMonorepoRoot(): string {
   return process.cwd();
 }
 
+/**
+ * JSON file persistence for local, single-user use.
+ * Uses read–modify–write without locking; concurrent POSTs can lose updates.
+ * See docs/improvements.md.
+ */
 export class FileClipRepository implements ClipRepository {
   constructor(private readonly filePath: string) {}
 

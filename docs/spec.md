@@ -131,6 +131,19 @@ Non-authoritative signals passed in the agent prompt: hostname, path, extension,
 
 See root [README.md](../README.md).
 
+## Request limits
+
+| Field | Max length |
+|-------|------------|
+| `url` | 2,048 characters |
+| `notes` | 32,000 characters |
+
+Defined in `packages/core/src/limits.ts`.
+
+## Security
+
+Local-only MVP — no auth. See [SECURITY.md](../SECURITY.md) and [improvements.md](improvements.md).
+
 ## Phase 2 (not implemented)
 
 - `POST /api/chat` + `chatAgent`
