@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.6.1
       playwright:
         specifier: ^1.60.0
         version: 1.60.0
@@ -29,6 +32,9 @@ importers:
       '@wijzer/db':
         specifier: workspace:*
         version: link:../../packages/db
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.6.1
       next:
         specifier: ^15.3.3
         version: 15.5.18(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -618,6 +624,10 @@ packages:
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
+
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
 
   enhanced-resolve@5.21.3:
     resolution: {integrity: sha512-QyL119InA+XXEkNLNTPCXPugSvOfhwv0JOlGNzvxs0hZaiHLNvXSpudUWsOlsXGWJh8G6ckCScEkVHfX3kw/2Q==}
@@ -1435,6 +1445,8 @@ snapshots:
       dom-serializer: 2.0.0
       domelementtype: 2.3.0
       domhandler: 5.0.3
+
+  dotenv@16.6.1: {}
 
   enhanced-resolve@5.21.3:
     dependencies:

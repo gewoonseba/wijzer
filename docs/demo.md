@@ -48,21 +48,27 @@ Example URLs:
 - YouTube: `https://www.youtube.com/watch?v=jNQXAC9IVRw`
 - Article: any public blog post URL
 
-## 4. Record a demo video (optional)
+## 4. Record a demo video
 
-With the dev server running on port 3000:
+With `pnpm dev` running on port 3000:
 
 ```bash
-# UI-only demo (uses seeded sample clip if no API key)
-node scripts/seed-demo-clip.mjs
-DEMO_OUT_DIR=./demo-output node scripts/record-demo.mjs
-
-# Full demo including live clip (requires AI_GATEWAY_API_KEY in shell)
-export AI_GATEWAY_API_KEY=your_key
-DEMO_OUT_DIR=./demo-output node scripts/record-demo.mjs
+# Full flow: paste URL + notes → Clip → detail page
+node scripts/record-demo-full.mjs
 ```
 
-Output: `demo-output/wijzer-demo.webm`
+Output: `demo-output/wijzer-demo-full.webm` (or set `DEMO_OUT_DIR`).
+
+Uses `https://www.youtube.com/watch?v=dQw4w9WgXcQ` by default (has captions).
+
+## 5. Automated E2E verification
+
+```bash
+pnpm dev   # separate terminal
+node scripts/e2e-live-clip.mjs
+```
+
+Checks `POST /api/clips` returns 201, preserves notes, and produces clip content.
 
 ## 5. Smoke tests (no API key)
 
