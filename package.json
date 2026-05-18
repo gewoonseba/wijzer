@@ -8,7 +8,8 @@
     "typecheck": "turbo typecheck",
     "verify:setup": "node scripts/verify-setup.mjs",
     "verify:e2e": "node scripts/e2e-live-clip.mjs",
-    "demo:record": "node scripts/record-demo-full.mjs"
+    "demo:record": "node scripts/record-demo-full.mjs",
+    "demo:record:visual": "node scripts/record-demo-visual.mjs"
   },
   "devDependencies": {
     "dotenv": "^16.5.0",
