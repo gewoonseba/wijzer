@@ -1,5 +1,5 @@
 import { NotFoundError } from '@wijzer/core';
-import { getClipRepository } from '@wijzer/db';
+import { getClipRepository } from '@/lib/clip-store';
 import { errorResponse } from '@/lib/api-error';
 
 export const runtime = 'nodejs';

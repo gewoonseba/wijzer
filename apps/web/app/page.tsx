@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { ClipForm } from '@/components/clip-form';
-import { getClipRepository } from '@wijzer/db';
+import { ClipsList } from '@/components/clips-list';
+import { getClipRepository } from '@/lib/clip-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,29 +24,7 @@ export default async function HomePage() {
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           Recent clips
         </h2>
-        {clips.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No clips yet.</p>
-        ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {clips.map((clip) => (
-              <li key={clip.id}>
-                <Link
-                  href={`/clips/${clip.id}`}
-                  className="block px-4 py-3 hover:bg-muted/60"
-                >
-                  <p className="font-medium">{clip.metadata.title.value}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {clip.url}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {new Date(clip.createdAt).toLocaleString()} ·{' '}
-                    {clip.metadata.kind}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ClipsList initialClips={clips} />
       </section>
     </main>
   );

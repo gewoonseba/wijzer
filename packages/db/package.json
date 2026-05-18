@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./convex-clip-map": {
+      "types": "./dist/convex-clip-map.d.ts",
+      "default": "./dist/convex-clip-map.js"
     }
   },
   "scripts": {

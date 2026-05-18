@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Convex types
+        env:
+          CONVEX_AGENT_MODE: anonymous
+        run: npx convex dev --once --typecheck disable
+
       - name: Lint, typecheck, and build
         run: pnpm exec turbo run build lint typecheck
 

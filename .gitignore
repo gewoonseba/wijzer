@@ -6,6 +6,12 @@ dist
 .env.local
 .env*.local
 .data
+
+# Convex: only commit sources + _generated (not tsc emit in convex/)
+/convex/*.js
+/convex/*.d.ts
+/convex/*.js.map
+/convex/*.d.ts.map
 *.log
 .DS_Store
 *.tsbuildinfo

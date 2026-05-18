@@ -3,6 +3,10 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev",
+    "dev:convex": "CONVEX_AGENT_MODE=anonymous npx convex dev",
+    "convex:codegen": "npx convex codegen",
+    "convex:deploy": "npx convex deploy",
+    "import:clips": "node scripts/import-clips-to-convex.mjs",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
@@ -16,6 +20,7 @@
     "demo:record:visual": "node scripts/record-demo-visual.mjs"
   },
   "devDependencies": {
+    "convex": "^1.24.8",
     "dotenv": "^16.5.0",
     "playwright": "^1.60.0",
     "turbo": "^2.5.4",
