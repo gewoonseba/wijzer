@@ -26,3 +26,5 @@ There is **no authentication**, **no authorization**, and **no rate limiting** i
 - Production SSRF hardening beyond current `safeFetch` (see [docs/improvements.md](docs/improvements.md))
 
 For a future hosted deployment, review [docs/improvements.md](docs/improvements.md) and [docs/convex-migration.md](docs/convex-migration.md) before going public.
+
+Actionable hardening backlog: [docs/production-hardening-patch-list.md](docs/production-hardening-patch-list.md).

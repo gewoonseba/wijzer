@@ -59,6 +59,14 @@ if (body.metadata?.warnings?.length) {
   console.log('Warnings:', body.metadata.warnings);
 }
 
+if (
+  body.metadata?.warnings?.some((w) =>
+    /mock clip|WIJZER_MOCK_CLIP/i.test(w),
+  )
+) {
+  console.log('Server used mock clip mode (no live fetch / AI for this request).');
+}
+
 console.log('\nClip id:', body.id);
 console.log('Title:', body.metadata?.title?.value);
 console.log('Tool:', body.metadata?.toolUsed);

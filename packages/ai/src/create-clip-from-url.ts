@@ -1,3 +1,4 @@
+import { GatewayError } from '@ai-sdk/gateway';
 import { buildUrlHints, validateClipUrl } from '@wijzer/content';
 import type { ClipMetadata, CreateClipInput } from '@wijzer/core';
 import {
@@ -19,8 +20,53 @@ import { summarizeEvidenceWithGateway } from './summarize-with-gateway.js';
 const CLIP_TIMEOUT_MS = Number(process.env.WIJZER_CLIP_TIMEOUT_MS ?? 120_000);
 const USE_AGENT = process.env.WIJZER_USE_AGENT === 'true';
 
+function mockClipEnabled(): boolean {
+  const v = process.env.WIJZER_MOCK_CLIP?.trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
 function hasGatewayKey(): boolean {
   return Boolean(process.env.AI_GATEWAY_API_KEY?.trim());
+}
+
+function buildMockCreateClipInput(
+  input: { url: string; notes: string },
+  safeUrl: string,
+): CreateClipInput {
+  const notesBlock = input.notes.trim() || '(none)';
+  const content = [
+    '## Overview',
+    '',
+    'This clip was created in **mock mode** (`WIJZER_MOCK_CLIP`). No remote page was fetched and no AI summarizer was called.',
+    '',
+    '## User notes',
+    '',
+    notesBlock,
+    '',
+    '—',
+    '',
+    `Source URL (validated only): ${safeUrl}`,
+  ].join('\n');
+
+  return {
+    url: input.url,
+    finalUrl: safeUrl,
+    notes: input.notes,
+    content,
+    metadata: {
+      kind: 'generic',
+      title: {
+        value: 'Mock clip (WIJZER_MOCK_CLIP)',
+        source: 'extracted',
+      },
+      toolUsed: 'clipGenericUrl',
+      extractionQuality: 'high',
+      confidence: { kind: 1, title: 1 },
+      warnings: [
+        'Mock clip: real extraction disabled. Unset WIJZER_MOCK_CLIP for live clipping.',
+      ],
+    },
+  };
 }
 
 function buildMetadataFromEvidence(
@@ -28,6 +74,7 @@ function buildMetadataFromEvidence(
   toolUsed: string,
   content: string,
   usedLocalSummary: boolean,
+  localSummaryNotice?: string,
 ): ClipMetadata {
   const titleValue =
     'title' in evidence && typeof evidence.title === 'string'
@@ -47,7 +94,8 @@ function buildMetadataFromEvidence(
   const warnings = [...(evidence.warnings ?? [])];
   if (usedLocalSummary) {
     warnings.push(
-      'Summary generated locally (no AI_GATEWAY_API_KEY). Add a gateway key for AI summaries.',
+      localSummaryNotice ??
+        'Summary generated locally (no AI_GATEWAY_API_KEY). Add a gateway key for AI summaries.',
     );
   }
 
@@ -77,6 +125,13 @@ function buildMetadataFromEvidence(
   };
 }
 
+type DeterministicOptions = {
+  /** When set (e.g. agent path already hit a gateway failure), skip a second gateway call */
+  skipAiGateway?: boolean;
+  /** Shown in metadata when forcing a local summary despite a gateway API key */
+  gatewayFallbackHint?: string;
+};
+
 async function createClipDeterministic(
   input: {
     url: string;
@@ -84,6 +139,7 @@ async function createClipDeterministic(
     safeUrl: string;
   },
   signal: AbortSignal,
+  opts?: DeterministicOptions,
 ): Promise<CreateClipInput> {
   const hints = buildUrlHints(input.safeUrl);
   let tool = selectExtractorFromHints(hints);
@@ -111,24 +167,50 @@ async function createClipDeterministic(
   let metadata: ClipMetadata;
   let usedLocalSummary = false;
 
-  if (hasGatewayKey()) {
-    const result = await summarizeEvidenceWithGateway({
-      url: input.url,
-      notes: input.notes,
-      toolUsed: tool,
-      evidence,
-      abortSignal: signal,
-    });
-    content = result.content;
-    metadata = {
-      ...result.metadataPatch,
-      toolUsed: result.deterministic.toolUsed,
-      thumbnail: result.deterministic.thumbnail,
-    };
+  const tryGateway = hasGatewayKey() && !opts?.skipAiGateway;
+
+  if (tryGateway) {
+    try {
+      const result = await summarizeEvidenceWithGateway({
+        url: input.url,
+        notes: input.notes,
+        toolUsed: tool,
+        evidence,
+        abortSignal: signal,
+      });
+      content = result.content;
+      metadata = {
+        ...result.metadataPatch,
+        toolUsed: result.deterministic.toolUsed,
+        thumbnail: result.deterministic.thumbnail,
+      };
+    } catch (err) {
+      if (!GatewayError.isInstance(err)) {
+        throw err;
+      }
+      usedLocalSummary = true;
+      content = summarizeEvidenceLocally(evidence);
+      const notice =
+        opts?.gatewayFallbackHint ??
+        `Summary generated locally (AI Gateway error: ${err.message})`;
+      metadata = buildMetadataFromEvidence(
+        evidence,
+        tool,
+        content,
+        usedLocalSummary,
+        notice,
+      );
+    }
   } else {
     usedLocalSummary = true;
     content = summarizeEvidenceLocally(evidence);
-    metadata = buildMetadataFromEvidence(evidence, tool, content, usedLocalSummary);
+    metadata = buildMetadataFromEvidence(
+      evidence,
+      tool,
+      content,
+      usedLocalSummary,
+      opts?.gatewayFallbackHint,
+    );
   }
 
   if (!content.trim()) {
@@ -193,8 +275,22 @@ async function createClipFromUrlInner(
 ): Promise<CreateClipInput> {
   const safeUrl = await validateClipUrl(input.url);
 
+  if (mockClipEnabled()) {
+    return buildMockCreateClipInput(input, safeUrl);
+  }
+
   if (USE_AGENT && hasGatewayKey()) {
-    return createClipWithAgent({ ...input, safeUrl }, signal);
+    try {
+      return await createClipWithAgent({ ...input, safeUrl }, signal);
+    } catch (err) {
+      if (!GatewayError.isInstance(err)) {
+        throw err;
+      }
+      return createClipDeterministic({ ...input, safeUrl }, signal, {
+        skipAiGateway: true,
+        gatewayFallbackHint: `Agent could not reach AI Gateway (${err.message}). Used local extraction and a non-AI summary instead.`,
+      });
+    }
   }
   return createClipDeterministic({ ...input, safeUrl }, signal);
 }
