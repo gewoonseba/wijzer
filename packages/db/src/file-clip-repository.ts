@@ -37,6 +37,11 @@ export class FileClipRepository implements ClipRepository {
   }
 
   private async readStore(): Promise<StoreFile> {
+    // Avoid readFile when the store is absent. Next/Turbopack can surface a
+    // rejected readFile to the RSC stream even when caught, which breaks hydration.
+    if (!existsSync(this.filePath)) {
+      return { clips: [] };
+    }
     try {
       const raw = await readFile(this.filePath, 'utf-8');
       const parsed = JSON.parse(raw) as StoreFile;
@@ -45,7 +50,12 @@ export class FileClipRepository implements ClipRepository {
       }
       return parsed;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as NodeJS.ErrnoException).code === 'ENOENT'
+      ) {
         return { clips: [] };
       }
       throw error;
