@@ -158,7 +158,7 @@ When clips (or other records) must be **scoped to a user or organization**, plan
 ### Convex functions
 
 - [ ] Configure **Convex Auth** (or custom JWT validation) per [Convex auth documentation](https://docs.convex.dev/auth).
-- [ ] In **every** `query` and `mutation` (and any `action` that returns sensitive data), load `ctx.auth.getUserIdentity()` (or equivalent) and **reject** if missing or not allowed.
+- [ ] In **every** `query` and `mutation` (and any `action` that returns sensitive data), load `await ctx.auth.getUserIdentity()` (see [Auth in Functions](https://docs.convex.dev/auth/functions-auth)) and **reject** if missing or not allowed.
 - [ ] Scope reads: `list` / `get` must filter by `ownerSubject` (or role-based rules for shared workspaces).
 - [ ] Scope writes: `create` / `update` / `delete` must set or verify `ownerSubject` so users cannot read or overwrite others’ documents by guessing `publicId`.
 
@@ -190,3 +190,51 @@ When clips (or other records) must be **scoped to a user or organization**, plan
 - Use **Convex actions** as the natural place to grow **URL fetch + AI extraction** so pipelines and secrets stay server-side and consistent.
 - **Vercel Workflow** is an optional future layer for **durable multi-step orchestration** that still persists into Convex so subscriptions keep every surface in sync.
 - **Auth** is explicit in Convex: schema fields + indexes + identity checks in every function + aligned tokens on every surface.
+
+## External review
+
+_Convex documentation was cross-checked on 2026-05-18 via [Authentication](https://docs.convex.dev/auth), [Convex React](https://docs.convex.dev/client/react), [Next.js (App Router)](https://docs.convex.dev/client/nextjs), [Actions](https://docs.convex.dev/functions/actions), and [Auth in Functions](https://docs.convex.dev/auth/functions-auth). (Context7 quota was unavailable; sources are these official pages.)_
+
+### Verdict
+
+**Directionally correct.** The plan matches current Convex guidance: a single deployment as the real-time source of truth, client subscriptions via `ConvexProvider` + `ConvexReactClient`, `useQuery` / `useMutation` (and `useAction` where appropriate), actions for third-party / long-running work with writes through `ctx.runMutation` (prefer **internal** mutations when clients should not call the writer directly), and explicit authorization in functions rather than database RLS.
+
+### Gaps / corrections
+
+- **`getUserIdentity` is async** — Handlers should use `await ctx.auth.getUserIdentity()`; the [Auth in Functions](https://docs.convex.dev/auth/functions-auth) examples use `await`. The checklist in this doc is updated accordingly.
+- **Client-triggered actions vs mutations** — [Actions](https://docs.convex.dev/functions/actions#calling-actions-from-clients) state that calling an action **directly from the client is often an anti-pattern**; the recommended pattern is a **mutation** that records intent (e.g. insert a task row) and **schedules** an **internal** action. For Wijzer’s “create from URL” pipeline, consider documenting both: direct `useAction` for prototypes vs **mutation + `ctx.scheduler.runAfter(0, internal…)`** for production enforcement (dedupe, invariants).
+- **Multiple `runQuery` / `runMutation` from one action** — Same doc [best practices](https://docs.convex.dev/functions/actions#best-practices) recommend **avoiding several separate** `ctx.runQuery` / `ctx.runMutation` calls when a single **internal** query/mutation can batch work, to preserve transactional consistency and reduce overhead. Merging reads/writes into one internal function is preferred unless intentionally processing more than fits in one transaction.
+- **"use node" file split** — Actions that need unsupported NPM packages or Node APIs go in a file with **`"use node"`** at the top; **other Convex functions cannot live in that file** ([Actions — Choosing the runtime](https://docs.convex.dev/functions/actions#choosing-the-runtime-use-node)). If the extraction stack needs Node-only libraries, plan an extra file or helpers accordingly.
+- **Service / background callers** — [Authentication — Service Authentication](https://docs.convex.dev/auth#service-authentication) describes **public Convex functions** that verify a **shared secret** (e.g. env var) for non–end-user callers. Prefer that documented pattern when describing Modal, workflows, or cron-style access; align wording with “shared secret checked in code” rather than overloading “deploy keys” unless your team uses a specific Convex mechanism by that name.
+- **Auth provider breadth** — The auth overview also lists **WorkOS AuthKit** alongside Clerk and Auth0 ([Authentication](https://docs.convex.dev/auth#third-party-authentication-platforms)); optional to mention in vendor comparisons.
+- **Convex Auth library** — [Authentication — The Convex Auth Library](https://docs.convex.dev/auth#the-convex-auth-library): **beta**, may have breaking changes; fewer features than third-party integrations; **Next.js support is under active development** with experimental links to [labs.convex.dev/auth](https://labs.convex.dev/auth). If Wijzer chooses this path, call out beta/experiment status in the migration risks.
+- **Next.js 15** — The [Next.js client doc](https://docs.convex.dev/client/nextjs#clerk) references **Next.js 15** and `npm create convex@latest -- -t nextjs-clerk`; good alignment with this monorepo’s stack—follow that quickstart when standardizing `ConvexClientProvider` + Clerk.
+
+### Convex Auth setup (paste into migration / runbooks)
+
+High-level steps **only as documented** on [Authentication](https://docs.convex.dev/auth) and [Next.js (App Router)](https://docs.convex.dev/client/nextjs):
+
+1. **Choose an integration track**
+   - **Third-party OIDC/JWT providers** (documented guides): [Clerk](https://docs.convex.dev/auth/clerk), [WorkOS AuthKit](https://docs.convex.dev/auth/authkit), [Auth0](https://docs.convex.dev/auth/auth0), or [Custom Auth / OIDC](https://docs.convex.dev/auth/advanced/custom-auth).
+   - **Convex Auth** (in-product library): [The Convex Auth Library](https://docs.convex.dev/auth/convex-auth) — beta; npm package linked from that page; Next.js called out as evolving ([labs](https://labs.convex.dev/auth)).
+
+2. **Configure the deployment** — Per-provider Convex docs: set **JWT / issuer / application ID** (and related settings) in the **Convex dashboard** so Convex validates incoming identity tokens (exact fields depend on Clerk vs Auth0 vs custom JWT).
+
+3. **App Router client tree** — Use a **client** module (e.g. `ConvexClientProvider.tsx`) with `ConvexReactClient` and `ConvexProvider`, or a **provider-specific** wrapper as in the [Auth0 + Next.js example](https://docs.convex.dev/client/nextjs#client-side-only) (`Auth0Provider` + `ConvexProviderWithAuth0` from `convex/react-auth0`). For Clerk, follow [Clerk](https://docs.convex.dev/auth/clerk) and the [Next.js App Router](https://docs.convex.dev/client/nextjs) section (including `nextjs-clerk` template). Share **one** `ConvexReactClient` instance across the app to avoid reconnect churn.
+
+4. **Server Components, Server Actions, Route Handlers** — [Next.js doc — Server and client side](https://docs.convex.dev/client/nextjs#server-and-client-side): use each vendor’s **Next.js SDK** to obtain suitable **OpenID JWTs** for server-side Convex calls; **additional `.env.local` vars** are required for hybrid setups.
+
+5. **Identity in Convex functions** — In `query` / `mutation` / `action` handlers, use **`await ctx.auth.getUserIdentity()`** ([Auth in Functions](https://docs.convex.dev/auth/functions-auth)). A non-null identity includes at least **`subject`**, **`issuer`**, and **`tokenIdentifier`**; other claims depend on the provider ([User identity fields](https://docs.convex.dev/auth/functions-auth#user-identity-fields)).
+
+6. **Passing tokens from React** — Documented pattern: **authenticated WebSocket / RPC** via the React integration (e.g. **Clerk** or **Auth0** + Convex provider components above) so subscriptions and mutations run **as the signed-in user** ([Next.js — Adding authentication](https://docs.convex.dev/client/nextjs#adding-authentication)). For **HTTP Actions**, the [Auth in Functions](https://docs.convex.dev/auth/functions-auth#http-actions) example uses an **`Authorization: Bearer <JWT>`** header.
+
+7. **Backend / service jobs** — Use [Service Authentication](https://docs.convex.dev/auth#service-authentication): trusted callers invoke **public** functions that check a **shared secret** from the environment—**not** end-user JWTs.
+
+### Risks (Turborepo, Next 15, multiple surfaces)
+
+- **One `convex/` root vs many apps** — Turbo pipelines must run **`convex dev` / codegen** where `convex/` lives and ensure every consumer (`apps/web`, future apps) depends on **fresh `_generated` types** and the **same** `NEXT_PUBLIC_CONVEX_URL` per environment ([Deployment URLs](https://docs.convex.dev/client/react/deployment-urls) pattern).
+- **SSR vs client reactivity** — [Next.js — Server rendering](https://docs.convex.dev/client/nextjs#server-rendering-ssr): reactive UI needs **Client Components** and a live client; preloading and server-side data fetch are **separate** concerns—read the dedicated [Server Rendering (App Router)](https://docs.convex.dev/client/nextjs/app-router/server-rendering) page to avoid duplicating auth/token bugs between RSC and hooks.
+- **Token alignment across surfaces** — [Next.js](https://docs.convex.dev/client/nextjs#other-providers) states Convex expects **OIDC JWTs** on both client and server paths; each surface must obtain tokens the deployment trusts (**same issuer/audience** configuration as in the dashboard).
+- **Convex Auth / Next** — If using **Convex Auth**, factor in **beta** and **in-progress Next.js** support ([Authentication — Convex Auth](https://docs.convex.dev/auth#the-convex-auth-library)).
+- **Actions limits and idempotency** — [Actions — Limits](https://docs.convex.dev/functions/actions#limits): **10-minute** timeout; **no automatic retry** on failure (unlike mutations). Long extraction pipelines need explicit status fields, retries at the app level, and care with side effects (e.g. paid APIs).
+- **Parallel actions** — [Actions](https://docs.convex.dev/functions/actions#calling-actions-from-clients): actions from one client are **parallelized** vs mutations’ ordering semantics—if steps must be sequential, enforce that in code (await in one action, or chain mutation → scheduled internal action).
