@@ -1,7 +1,7 @@
 import { createClipFromUrl } from '@wijzer/ai';
 import { createClipRequestSchema } from '@wijzer/core';
 import { getClipRepository } from '@wijzer/db';
-import { errorResponse } from '@/lib/api-error';
+import { errorResponse, logWijzerApiError } from '@/lib/api-error';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -13,10 +13,27 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      logWijzerApiError(400, 'INVALID_JSON', 'Request body is not valid JSON');
+      return Response.json(
+        { error: 'Invalid JSON body', code: 'INVALID_JSON' },
+        { status: 400 },
+      );
+    }
+
     const parsed = createClipRequestSchema.safeParse(body);
 
     if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      const detail = issue
+        ? `${issue.path.join('.') || 'body'}: ${issue.message}`
+        : 'Request body failed validation';
+      logWijzerApiError(400, 'VALIDATION_ERROR', detail, {
+        issueCount: String(parsed.error.issues.length),
+      });
       return Response.json(
         { error: 'Invalid request body', code: 'VALIDATION_ERROR' },
         { status: 400 },
