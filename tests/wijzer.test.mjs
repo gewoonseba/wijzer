@@ -157,3 +157,31 @@ describe('FileClipRepository', () => {
     }
   });
 });
+
+describe('createClipFromUrl (WIJZER_MOCK_CLIP)', () => {
+  it('returns canned content without extraction when mock env is set', async () => {
+    const prev = process.env.WIJZER_MOCK_CLIP;
+    process.env.WIJZER_MOCK_CLIP = '1';
+    try {
+      const { createClipFromUrl } = await import(
+        join(root, 'packages/ai/dist/index.js'),
+      );
+      const out = await createClipFromUrl({
+        url: 'https://example.com/article',
+        notes: 'integration note',
+      });
+      assert.match(out.content, /mock mode/i);
+      assert.ok(
+        out.metadata.warnings.some((w) => /mock clip/i.test(w)),
+      );
+      assert.equal(out.metadata.toolUsed, 'clipGenericUrl');
+      assert.equal(out.notes, 'integration note');
+    } finally {
+      if (prev === undefined) {
+        delete process.env.WIJZER_MOCK_CLIP;
+      } else {
+        process.env.WIJZER_MOCK_CLIP = prev;
+      }
+    }
+  });
+});

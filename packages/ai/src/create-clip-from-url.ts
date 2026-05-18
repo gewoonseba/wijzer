@@ -20,8 +20,53 @@ import { summarizeEvidenceWithGateway } from './summarize-with-gateway.js';
 const CLIP_TIMEOUT_MS = Number(process.env.WIJZER_CLIP_TIMEOUT_MS ?? 120_000);
 const USE_AGENT = process.env.WIJZER_USE_AGENT === 'true';
 
+function mockClipEnabled(): boolean {
+  const v = process.env.WIJZER_MOCK_CLIP?.trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
 function hasGatewayKey(): boolean {
   return Boolean(process.env.AI_GATEWAY_API_KEY?.trim());
+}
+
+function buildMockCreateClipInput(
+  input: { url: string; notes: string },
+  safeUrl: string,
+): CreateClipInput {
+  const notesBlock = input.notes.trim() || '(none)';
+  const content = [
+    '## Overview',
+    '',
+    'This clip was created in **mock mode** (`WIJZER_MOCK_CLIP`). No remote page was fetched and no AI summarizer was called.',
+    '',
+    '## User notes',
+    '',
+    notesBlock,
+    '',
+    '—',
+    '',
+    `Source URL (validated only): ${safeUrl}`,
+  ].join('\n');
+
+  return {
+    url: input.url,
+    finalUrl: safeUrl,
+    notes: input.notes,
+    content,
+    metadata: {
+      kind: 'generic',
+      title: {
+        value: 'Mock clip (WIJZER_MOCK_CLIP)',
+        source: 'extracted',
+      },
+      toolUsed: 'clipGenericUrl',
+      extractionQuality: 'high',
+      confidence: { kind: 1, title: 1 },
+      warnings: [
+        'Mock clip: real extraction disabled. Unset WIJZER_MOCK_CLIP for live clipping.',
+      ],
+    },
+  };
 }
 
 function buildMetadataFromEvidence(
@@ -229,6 +274,10 @@ async function createClipFromUrlInner(
   signal: AbortSignal,
 ): Promise<CreateClipInput> {
   const safeUrl = await validateClipUrl(input.url);
+
+  if (mockClipEnabled()) {
+    return buildMockCreateClipInput(input, safeUrl);
+  }
 
   if (USE_AGENT && hasGatewayKey()) {
     try {

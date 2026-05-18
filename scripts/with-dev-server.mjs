@@ -32,6 +32,9 @@ const dev = spawn('npx', ['--yes', 'pnpm@9.15.9', '--filter', 'web', 'dev'], {
     ...process.env,
     FORCE_COLOR: '0',
     NODE_ENV: 'development',
+    // Default mock clips in this harness so CI/local test:ci need no YouTube/AI.
+    // Set WIJZER_MOCK_CLIP=0 (or false) to exercise real extraction in the child server.
+    WIJZER_MOCK_CLIP: process.env.WIJZER_MOCK_CLIP ?? '1',
   },
 });
 
