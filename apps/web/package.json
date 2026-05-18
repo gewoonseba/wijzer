@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/gateway": "^3.0.115",
     "@tabler/icons-react": "^3.44.0",
     "@wijzer/ai": "workspace:*",
     "@wijzer/core": "workspace:*",
