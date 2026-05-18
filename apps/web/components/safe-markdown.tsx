@@ -3,7 +3,7 @@ import rehypeSanitize from 'rehype-sanitize';
 
 export function SafeMarkdown({ content }: { content: string }) {
   if (!content.trim()) {
-    return <p className="text-sm text-[var(--muted)]">(empty)</p>;
+    return <p className="text-sm text-muted-foreground">(empty)</p>;
   }
 
   return (

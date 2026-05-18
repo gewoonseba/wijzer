@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -55,7 +57,7 @@ export function ClipForm() {
         <label htmlFor="url" className="mb-1 block text-sm font-medium">
           URL
         </label>
-        <input
+        <Input
           id="url"
           type="url"
           required
@@ -63,13 +65,12 @@ export function ClipForm() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={loading}
-          className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-60"
         />
       </div>
 
       <div>
         <label htmlFor="notes" className="mb-1 block text-sm font-medium">
-          Notes <span className="font-normal text-[var(--muted)]">(markdown)</span>
+          Notes <span className="font-normal text-muted-foreground">(markdown)</span>
         </label>
         <textarea
           id="notes"
@@ -78,19 +79,19 @@ export function ClipForm() {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           disabled={loading}
-          className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-60"
+          className="flex min-h-[120px] w-full rounded-3xl border border-transparent bg-input/50 px-3 py-2 font-mono text-sm text-foreground transition-[color,box-shadow,background-color] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
 
       {loading ? (
         <div
-          className="rounded-lg border border-[var(--border)] bg-black/[0.02] px-4 py-3 dark:bg-white/[0.04]"
+          className="rounded-3xl border border-border bg-muted/40 px-4 py-3"
           role="status"
           aria-live="polite"
         >
           <p className="text-sm font-medium">Clipping…</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">{status}</p>
-          <p className="mt-2 text-xs text-[var(--muted)]">
+          <p className="mt-1 text-sm text-muted-foreground">{status}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
             This usually takes 15–90 seconds depending on the page and AI
             summarization.
           </p>
@@ -98,18 +99,14 @@ export function ClipForm() {
       ) : null}
 
       {error ? (
-        <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {error}
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-lg bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-[var(--background)] disabled:opacity-50"
-      >
+      <Button type="submit" disabled={loading}>
         {loading ? 'Clipping…' : 'Clip'}
-      </button>
+      </Button>
     </form>
   );
 }
