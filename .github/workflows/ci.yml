@@ -37,3 +37,6 @@ jobs:
 
       - name: Lint, typecheck, and build
         run: pnpm exec turbo run build lint typecheck
+
+      - name: Test suite
+        run: pnpm run test:ci

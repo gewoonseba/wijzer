@@ -7,8 +7,12 @@ import { spawn } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { freeDevPort } from './free-dev-port.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const baseUrl = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3000';
+
+freeDevPort(3000);
 
 function waitUntil(ms, predicate) {
   const deadline = Date.now() + ms;
