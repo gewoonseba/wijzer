@@ -1,6 +1,6 @@
 import { createClipFromUrl } from '@wijzer/ai';
 import { createClipRequestSchema } from '@wijzer/core';
-import { getClipRepository } from '@wijzer/db';
+import { getClipRepository } from '@/lib/clip-store';
 import { errorResponse, logWijzerApiError } from '@/lib/api-error';
 
 export const runtime = 'nodejs';
