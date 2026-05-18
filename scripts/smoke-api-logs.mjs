@@ -5,6 +5,7 @@
  */
 import { spawn } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 import { freeDevPort } from './free-dev-port.mjs';
@@ -113,7 +114,15 @@ try {
   console.error('--- server log tail ---\n', log.slice(-6000));
   exit = 1;
 } finally {
-  child.kill('SIGTERM');
+  try {
+    child.kill('SIGKILL');
+  } catch {
+    /* ignore */
+  }
+  freeDevPort(3000);
 }
+
+/* Let `next-server` release :::3000 after the wrapper dies (CI orphan issue). */
+await sleep(500);
 
 process.exit(exit);

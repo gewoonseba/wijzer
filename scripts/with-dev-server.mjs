@@ -80,5 +80,10 @@ try {
   console.error(e);
   process.exitCode = 1;
 } finally {
-  dev.kill('SIGTERM');
+  try {
+    dev.kill('SIGKILL');
+  } catch {
+    /* ignore */
+  }
+  freeDevPort(3000);
 }

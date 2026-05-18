@@ -7,7 +7,7 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test:unit": "node --test tests/wijzer.test.mjs",
-    "test:ci": "pnpm run test:unit && node scripts/verify-setup.mjs && node scripts/smoke-api-logs.mjs && node scripts/with-dev-server.mjs -- node scripts/e2e-live-clip.mjs",
+    "test:ci": "pnpm run test:unit && node scripts/verify-setup.mjs && node scripts/smoke-api-logs.mjs && node scripts/free-dev-port.mjs && node scripts/with-dev-server.mjs -- node scripts/e2e-live-clip.mjs",
     "test": "pnpm exec turbo run build && pnpm run test:ci",
     "verify:setup": "node scripts/verify-setup.mjs",
     "verify:e2e": "node scripts/e2e-live-clip.mjs",
